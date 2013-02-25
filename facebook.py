@@ -59,7 +59,7 @@ def conky_color(name):
     return colors[name]
 
 # Décorateur permettant de parser les options
-@clize('nbr': ('n',), 'conky': ('c',)})
+@clize(alias={'nbr': ('n',), 'conky': ('c',)})
 def main(url, nbr = 5, conky = False) :
 
     try:
