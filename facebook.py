@@ -59,14 +59,14 @@ def conky_color(name):
     return colors[name]
 
 # Décorateur permettant de parser les options
-@clize(alias={'nbr': ('n',), 'conky': ('c',)})
-def main(url, nbr = 5, conky = False) :
+@clize(alias={'nbr': ('n',), 'conky': ('c',), 'length': ('l',)})
+def main(url, nbr=5, conky=False, length=100) :
 
     try:
         notifs = get(url).text
     except:
         print("Non connecté")
-        exit()
+        return
 
     soup = BeautifulSoup(notifs)
 
@@ -100,9 +100,10 @@ def main(url, nbr = 5, conky = False) :
         #Couper aussi après un mot, et retours à la ligne justifiés.
 
 
+        pub = format_chaine(item.title.string, length)
+
         #Si le script est lancé par un conky
         if conky:
-            pub = format_chaine(item.title.string, 100)
             # couleurs différentes en fonction de la date de pub
             # en rouge si la notif a moins de 2 heures
             if now - relativedelta.relativedelta(minutes =+ 60) < date:
@@ -120,15 +121,15 @@ def main(url, nbr = 5, conky = False) :
             # En rouge si la notif a moins de 2 heures. Attention,
             #une heure de décalage dû au temps de facebook
             if now - relativedelta.relativedelta(minutes =+ 60) < date:
-                print(couleur('red') + "- " + hour + ":" + minute + " " + format_chaine(item.title.string, 20) + couleur('default'))
+                print(couleur('red') + "- " + hour + ":" + minute + " " + pub + couleur('default'))
                 #print(type(item.title.string))
                 pass
             # En jaune si moins de 5 heures
             elif now - relativedelta.relativedelta(minutes =+ 220) < date :
-                print(couleur('yellow') + "- " + hour + ":" + minute + " " + format_chaine(item.title.string, 20) + couleur('default'))
+                print(couleur('yellow') + "- " + hour + ":" + minute + " " + pub + couleur('default'))
             else :
                 # On imprime le titre
-                print("- " + format_chaine(item.title.string, 20))
+                print("- " + pub)
 
 
 def format_chaine(publi, char):
