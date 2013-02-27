@@ -9,6 +9,7 @@ from dateutil import relativedelta
 from dateutil.tz import *
 import datetime
 from clize import clize, run # sert à pouvoir passer des arguments au script
+import json
 
 
 # Fonction inspirée de http://www.developpez.net/forums/d448416/autres-langages/python-zope/general-python/mode-console-couleur-shell/
@@ -72,12 +73,14 @@ def main(url, nbr=5, conky=False, length=100) :
 
     now = datetime.datetime.now(tzutc())
 
+    storage = list()
+
     # traitements pour chaque item
     for item in soup.findAll('item')[0:nbr]:
 
         item.title.string = item.title.string.replace('\n\n', ' ')
 
-        # On ajoute 3 heures à l'heure de l'xml, elle n'est pas bonne
+        # On ajoute 2 heures à l'heure de l'xml, elle n'est pas bonne
         # On fait ça pour la date de toutes les notifs
         #TODO: ajouter une option pour l'offset des heures
         date = parse(item.pubdate.string) + relativedelta.relativedelta(hours=+2)
@@ -99,7 +102,6 @@ def main(url, nbr=5, conky=False, length=100) :
         #Pr ça, parser le conkyrc appelé pour connaitre le nbr de cara max par ligne.
         #Couper aussi après un mot, et retours à la ligne justifiés.
 
-
         pub = format_chaine(item.title.string, length)
 
         #Si le script est lancé par un conky
@@ -107,13 +109,13 @@ def main(url, nbr=5, conky=False, length=100) :
             # couleurs différentes en fonction de la date de pub
             # en rouge si la notif a moins de 2 heures
             if now - relativedelta.relativedelta(minutes =+ 60) < date:
-                print(conky_color('red') + "- " + hour + ":" + minute + " " + pub + conky_color('default'))
+                pub = conky_color('red') + "- " + hour + ":" + minute + " " + pub + conky_color('default')
             # en jaune si moins de 5 heures
             elif now - relativedelta.relativedelta(minutes =+ 220) < date :
-                print(conky_color('yellow') + "- " + hour + ":" + minute + " " + pub + conky_color('default'))
+                pub = conky_color('yellow') + "- " + hour + ":" + minute + " " + pub + conky_color('default')
             else :
                 # On imprime le titre
-                print("- " + pub)
+                pub = "- " + pub
 
         #Si le script est lancé en shell
         else:
@@ -121,15 +123,28 @@ def main(url, nbr=5, conky=False, length=100) :
             # En rouge si la notif a moins de 2 heures. Attention,
             #une heure de décalage dû au temps de facebook
             if now - relativedelta.relativedelta(minutes =+ 60) < date:
-                print(couleur('red') + "- " + hour + ":" + minute + " " + pub + couleur('default'))
-                #print(type(item.title.string))
-                pass
+                pub = couleur('red') + "- " + hour + ":" + minute + " " + pub + couleur('default')
             # En jaune si moins de 5 heures
             elif now - relativedelta.relativedelta(minutes =+ 220) < date :
-                print(couleur('yellow') + "- " + hour + ":" + minute + " " + pub + couleur('default'))
+                pub = couleur('yellow') + "- " + hour + ":" + minute + " " + pub + couleur('default')
             else :
                 # On imprime le titre
-                print("- " + pub)
+                pub = "- " + pub
+
+        #print(pub)
+        storage.append(pub)
+
+    with open('temp.txt', 'r') as my_file:
+        decoded = json.load(my_file)
+
+    for each_pub in storage:
+
+        if each_pub not in decoded:
+            print(each_pub)
+
+    with open('temp.txt', 'w') as my_file:
+        json.dump(storage, my_file)
+        my_file.flush()
 
 
 def format_chaine(publi, char):
