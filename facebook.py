@@ -10,6 +10,9 @@ from dateutil.tz import *
 import datetime
 from clize import clize, run # sert à pouvoir passer des arguments au script
 import json
+import notify2
+import os
+import sys
 
 
 # Fonction inspirée de http://www.developpez.net/forums/d448416/autres-langages/python-zope/general-python/mode-console-couleur-shell/
@@ -98,50 +101,58 @@ def main(url, nbr=5, conky=False, length=100) :
         else:
             minute = str(minute)
 
-        #TODO: couper la notif si elle dépasse un certain nbr de caractères.
-        #Pr ça, parser le conkyrc appelé pour connaitre le nbr de cara max par ligne.
-        #Couper aussi après un mot, et retours à la ligne justifiés.
-
         pub = format_chaine(item.title.string, length)
 
         #Si le script est lancé par un conky
         if conky:
+            image = os.path.dirname(sys.argv[0]) + "/images/FaceBook_48x48.png"
             # couleurs différentes en fonction de la date de pub
             # en rouge si la notif a moins de 2 heures
             if now - relativedelta.relativedelta(minutes =+ 60) < date:
-                pub = conky_color('red') + "- " + hour + ":" + minute + " " + pub + conky_color('default')
+                print(conky_color('red') + "- " + hour + ":" + minute + " " + pub + conky_color('default'))
             # en jaune si moins de 5 heures
             elif now - relativedelta.relativedelta(minutes =+ 220) < date :
-                pub = conky_color('yellow') + "- " + hour + ":" + minute + " " + pub + conky_color('default')
+                print(conky_color('yellow') + "- " + hour + ":" + minute + " " + pub + conky_color('default'))
             else :
                 # On imprime le titre
-                pub = "- " + pub
+                print("- " + pub)
 
         #Si le script est lancé en shell
         else:
+            image = os.path.abspath(os.path.curdir + "/images/FaceBook_48x48.png")
             # Couleurs différentes en fonction de la date de pub
             # En rouge si la notif a moins de 2 heures. Attention,
             #une heure de décalage dû au temps de facebook
             if now - relativedelta.relativedelta(minutes =+ 60) < date:
-                pub = couleur('red') + "- " + hour + ":" + minute + " " + pub + couleur('default')
+                print(couleur('red') + "- " + hour + ":" + minute + " " + pub + couleur('default'))
             # En jaune si moins de 5 heures
             elif now - relativedelta.relativedelta(minutes =+ 220) < date :
-                pub = couleur('yellow') + "- " + hour + ":" + minute + " " + pub + couleur('default')
+                print(couleur('yellow') + "- " + hour + ":" + minute + " " + pub + couleur('default'))
             else :
                 # On imprime le titre
-                pub = "- " + pub
+                print("- " + pub)
 
-        #print(pub)
         storage.append(pub)
 
+    #On charge le fichier temporaire
     with open('temp.txt', 'r') as my_file:
         decoded = json.load(my_file)
 
+    if not notify2.init("Facebook notifs"): 
+        return
+
+    #On print les pubs qui ne sont pas dans le fichier temporaire
     for each_pub in storage:
 
         if each_pub not in decoded:
-            print(each_pub)
+            n = notify2.Notification("Facebook", each_pub, image)
 
+            if not n.show():
+                print("Failed to send notification")
+                return
+
+    #On stocke toutes les pubs dans le fichier temporaire, 
+    #pr comparaison au prochain appel
     with open('temp.txt', 'w') as my_file:
         json.dump(storage, my_file)
         my_file.flush()
