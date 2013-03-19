@@ -86,7 +86,7 @@ def main(url, nbr=5, conky=False, length=100) :
         # On ajoute 2 heures à l'heure de l'xml, elle n'est pas bonne
         # On fait ça pour la date de toutes les notifs
         #TODO: ajouter une option pour l'offset des heures
-        date = parse(item.pubdate.string) + relativedelta.relativedelta(hours=+2)
+        date = parse(item.pubdate.string) + relativedelta.relativedelta(hours=+1)
 
         hour = date.hour
         minute = date.minute
