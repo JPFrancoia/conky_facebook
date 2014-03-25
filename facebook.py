@@ -9,7 +9,8 @@ from dateutil import relativedelta
 from dateutil.tz import *
 import datetime
 from clize import clize, run # sert à pouvoir passer des arguments au script
-import json
+#import json
+import pickle
 import notify2
 import os
 import sys
@@ -66,13 +67,15 @@ def conky_color(name):
 @clize(alias={'nbr': ('n',), 'conky': ('c',), 'length': ('l',)})
 def main(url, nbr=5, conky=False, length=100) :
 
+    os.chdir(os.path.dirname(sys.argv[0]))
+
     try:
         notifs = get(url).text
     except:
         print("Non connecté")
         return
 
-    soup = BeautifulSoup(notifs)
+    soup = BeautifulSoup(notifs, "xml")
 
     now = datetime.datetime.now(tzutc())
 
@@ -86,7 +89,7 @@ def main(url, nbr=5, conky=False, length=100) :
         # On ajoute 2 heures à l'heure de l'xml, elle n'est pas bonne
         # On fait ça pour la date de toutes les notifs
         #TODO: ajouter une option pour l'offset des heures
-        date = parse(item.pubdate.string) + relativedelta.relativedelta(hours=+1)
+        date = parse(item.pubDate.string) + relativedelta.relativedelta(hours=+1)
 
         hour = date.hour
         minute = date.minute
@@ -135,8 +138,13 @@ def main(url, nbr=5, conky=False, length=100) :
         storage.append(pub)
 
     #On charge le fichier temporaire
-    with open('temp.txt', 'r') as my_file:
-        decoded = json.load(my_file)
+    if os.path.isfile('temp') :
+        with open('temp', 'rb') as my_file:
+            depickler = pickle.Unpickler(my_file)
+            #decoded = json.load(my_file)
+            decoded = depickler.load()
+    else:
+        decoded = ""
 
     if not notify2.init("Facebook notifs"): 
         return
@@ -153,9 +161,11 @@ def main(url, nbr=5, conky=False, length=100) :
 
     #On stocke toutes les pubs dans le fichier temporaire, 
     #pr comparaison au prochain appel
-    with open('temp.txt', 'w') as my_file:
-        json.dump(storage, my_file)
-        my_file.flush()
+    with open('temp', 'wb') as my_file:
+        pickler = pickle.Pickler(my_file)
+        pickler.dump(storage)
+        #json.dump(storage, my_file)
+        #my_file.flush()
 
 
 def format_chaine(publi, char):
@@ -170,7 +180,7 @@ def format_chaine(publi, char):
         if indice == 0:
             ligne += "\n"
         elif indice != len(text) -1:
-            ligne = "  " + ligne
+            ligne = "  " + ligne + "\n"
         else:
             ligne = "  " + ligne + "\n"
 
