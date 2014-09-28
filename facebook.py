@@ -9,7 +9,6 @@ from dateutil import relativedelta
 from dateutil.tz import *
 import datetime
 from clize import clize, run # sert à pouvoir passer des arguments au script
-#import json
 import pickle
 import notify2
 import os
@@ -64,8 +63,8 @@ def conky_color(name):
     return colors[name]
 
 # Décorateur permettant de parser les options
-@clize(alias={'nbr': ('n',), 'conky': ('c',), 'length': ('l',)})
-def main(url, nbr=5, conky=False, length=100) :
+@clize(alias={'nbr': ('n',), 'conky': ('c',), 'length': ('l',), 'display': ('d',)})
+def main(url, nbr=5, conky=False, length=100, display=False) :
 
     os.chdir(os.path.dirname(sys.argv[0]))
 
@@ -89,7 +88,7 @@ def main(url, nbr=5, conky=False, length=100) :
         # On ajoute 2 heures à l'heure de l'xml, elle n'est pas bonne
         # On fait ça pour la date de toutes les notifs
         #TODO: ajouter une option pour l'offset des heures
-        date = parse(item.pubDate.string) + relativedelta.relativedelta(hours=+1)
+        date = parse(item.pubDate.string) + relativedelta.relativedelta(hours=+3)
 
         hour = date.hour
         minute = date.minute
@@ -106,34 +105,38 @@ def main(url, nbr=5, conky=False, length=100) :
 
         pub = format_chaine(item.title.string, length)
 
-        #Si le script est lancé par un conky
-        if conky:
-            image = os.path.dirname(sys.argv[0]) + "/images/FaceBook_48x48.png"
-            # couleurs différentes en fonction de la date de pub
-            # en rouge si la notif a moins de 2 heures
-            if now - relativedelta.relativedelta(minutes =+ 60) < date:
-                print(conky_color('red') + "- " + hour + ":" + minute + " " + pub + conky_color('default'))
-            # en jaune si moins de 5 heures
-            elif now - relativedelta.relativedelta(minutes =+ 220) < date :
-                print(conky_color('yellow') + "- " + hour + ":" + minute + " " + pub + conky_color('default'))
-            else :
-                # On imprime le titre
-                print("- " + pub)
+        #Si on veut afficher qqch
+        if display:
+            #Si le script est lancé par un conky
+            if conky:
+                image = os.path.dirname(sys.argv[0]) + "/images/FaceBook_48x48.png"
+                # couleurs différentes en fonction de la date de pub
+                # en rouge si la notif a moins de 2 heures
+                if now - relativedelta.relativedelta(minutes =+ 60) < date:
+                    print(conky_color('red') + "- " + hour + ":" + minute + " " + pub + conky_color('default'))
+                # en jaune si moins de 5 heures
+                elif now - relativedelta.relativedelta(minutes =+ 220) < date :
+                    print(conky_color('yellow') + "- " + hour + ":" + minute + " " + pub + conky_color('default'))
+                else :
+                    # On imprime le titre
+                    print("- " + pub)
 
-        #Si le script est lancé en shell
+            #Si le script est lancé en shell
+            else:
+                image = os.path.abspath(os.path.curdir + "/images/FaceBook_48x48.png")
+                # Couleurs différentes en fonction de la date de pub
+                # En rouge si la notif a moins de 2 heures. Attention,
+                #une heure de décalage dû au temps de facebook
+                if now - relativedelta.relativedelta(minutes =+ 60) < date:
+                    print(couleur('red') + "- " + hour + ":" + minute + " " + pub + couleur('default'))
+                # En jaune si moins de 5 heures
+                elif now - relativedelta.relativedelta(minutes =+ 220) < date :
+                    print(couleur('yellow') + "- " + hour + ":" + minute + " " + pub + couleur('default'))
+                else :
+                    # On imprime le titre
+                    print("- " + pub)
         else:
             image = os.path.abspath(os.path.curdir + "/images/FaceBook_48x48.png")
-            # Couleurs différentes en fonction de la date de pub
-            # En rouge si la notif a moins de 2 heures. Attention,
-            #une heure de décalage dû au temps de facebook
-            if now - relativedelta.relativedelta(minutes =+ 60) < date:
-                print(couleur('red') + "- " + hour + ":" + minute + " " + pub + couleur('default'))
-            # En jaune si moins de 5 heures
-            elif now - relativedelta.relativedelta(minutes =+ 220) < date :
-                print(couleur('yellow') + "- " + hour + ":" + minute + " " + pub + couleur('default'))
-            else :
-                # On imprime le titre
-                print("- " + pub)
 
         storage.append(pub)
 
@@ -147,6 +150,7 @@ def main(url, nbr=5, conky=False, length=100) :
         decoded = ""
 
     if not notify2.init("Facebook notifs"): 
+        print("Failed to initialize notifications")
         return
 
     #On print les pubs qui ne sont pas dans le fichier temporaire
@@ -164,8 +168,6 @@ def main(url, nbr=5, conky=False, length=100) :
     with open('temp', 'wb') as my_file:
         pickler = pickle.Pickler(my_file)
         pickler.dump(storage)
-        #json.dump(storage, my_file)
-        #my_file.flush()
 
 
 def format_chaine(publi, char):
